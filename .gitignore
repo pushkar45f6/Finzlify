@@ -5,4 +5,12 @@ web-build/
 *.log
 .env
 .env.local
+.env*.local
+backend/.dev.vars
 .DS_Store
+backend/.wrangler/
+backend/.node_modules/
+.wrangler/
+vscode/
+
+.env.production

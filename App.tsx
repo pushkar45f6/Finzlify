@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   SafeAreaView,
   View,
@@ -14,6 +14,10 @@ import {
 } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
+import * as Linking from "expo-linking";
+import { AuthProvider, useAuth } from "./src/auth/AuthProvider";
+import { AuthScreen } from "./src/auth/AuthScreen";
+import { ProfileModal } from "./src/auth/ProfileModal";
 
 const { width } = Dimensions.get("window");
 
@@ -79,14 +83,14 @@ function NavItem({ icon, label, active, onPress }: any) {
   );
 }
 
-function Header({ onMenu, onNotifications, onSettings, onAccount }: any) {
+function Header({ onMenu, onNotifications, onSettings, onAccount, userName }: any) {
   return (
     <View style={styles.header}>
       <View style={styles.headerLeft}>
         <IconButton icon="menu-outline" onPress={onMenu} />
         <View>
           <Text style={styles.eyebrow}>Good morning,</Text>
-          <Text style={styles.title}>Pushkar 👋</Text>
+          <Text style={styles.title}>{userName} 👋</Text>
           <Text style={styles.subtitle}>Small steps. Big goals.</Text>
         </View>
       </View>
@@ -99,10 +103,10 @@ function Header({ onMenu, onNotifications, onSettings, onAccount }: any) {
   );
 }
 
-function Home({ setTab, onAdd, onMenu, onNotifications, onSettings, onAccount }: any) {
+function Home({ setTab, onAdd, onMenu, onNotifications, onSettings, onAccount, userName }: any) {
   return (
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <Header {...{ onMenu, onNotifications, onSettings, onAccount }} />
+      <Header {...{ onMenu, onNotifications, onSettings, onAccount, userName }} />
 
       <Card>
         <View style={styles.rowBetween}>
@@ -321,13 +325,13 @@ function AddModal({ visible, onClose }: { visible: boolean; onClose: () => void 
   );
 }
 
-function Drawer({ visible, onClose, setTab, openAI }: any) {
+function Drawer({ visible, onClose, setTab, openAI, user, onLogout }: any) {
   const go = (tab?: Tab) => { onClose(); if (tab) setTab(tab); };
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.drawerBackdrop}>
         <View style={styles.drawer}>
-          <View style={styles.profileRow}><View style={styles.avatar}><Text>👨🏻</Text></View><View><Text style={styles.sectionTitle}>Pushkar</Text><Text style={styles.muted}>pushkar@email.com</Text></View><Pressable onPress={onClose}><Ionicons name="close" size={22} color={C.text}/></Pressable></View>
+          <View style={styles.profileRow}><View style={styles.avatar}><Ionicons name="person" size={21} color={C.cyan}/></View><View style={{ flex: 1 }}><Text style={styles.sectionTitle}>{user.displayName}</Text><Text style={styles.muted}>{user.email}</Text></View><Pressable onPress={onClose}><Ionicons name="close" size={22} color={C.text}/></Pressable></View>
           <DrawerItem icon="home-outline" text="Home" onPress={()=>go("Home")} />
           <DrawerItem icon="receipt-outline" text="Transactions" onPress={onClose}/>
           <DrawerItem icon="wallet-outline" text="Budgets" onPress={onClose}/>
@@ -347,6 +351,7 @@ function Drawer({ visible, onClose, setTab, openAI }: any) {
           <Text style={styles.drawerSection}>SERVICES</Text>
           <DrawerItem icon="sparkles-outline" text="AI Assistant" onPress={()=>{onClose();openAI();}} />
           <DrawerItem icon="download-outline" text="Export Data" onPress={onClose}/>
+          <DrawerItem icon="log-out-outline" text="Sign out" onPress={()=>{onClose();onLogout();}} />
         </View>
       </View>
     </Modal>
@@ -355,7 +360,7 @@ function Drawer({ visible, onClose, setTab, openAI }: any) {
 
 function DrawerItem({icon,text,onPress}:any){return <Pressable onPress={onPress} style={styles.drawerItem}><Ionicons name={icon} size={20} color={C.text}/><Text style={styles.drawerText}>{text}</Text><Ionicons name="chevron-forward" size={16} color={C.muted}/></Pressable>}
 
-function SettingsModal({visible,onClose}:any){
+function SettingsModal({visible,onClose,onOpenProfile,onLogout}:any){
   return <Modal visible={visible} animationType="slide" transparent><View style={styles.modalBackdrop}><View style={styles.modalSheet}>
     <View style={styles.rowBetween}><Text style={styles.pageTitle}>Settings</Text><IconButton icon="close" onPress={onClose}/></View>
     {[
@@ -366,7 +371,8 @@ function SettingsModal({visible,onClose}:any){
       ["moon-outline","Theme","Dark"],
       ["notifications-outline","Notifications","On"],
       ["cloud-outline","Sync with Cloud","On"],
-    ].map(([icon,label,value])=><View key={label} style={styles.settingRow}><Ionicons name={icon as any} size={21} color={C.muted}/><Text style={styles.listMain}>{label}</Text>{value && <Text style={styles.muted}>{value}</Text>}<Ionicons name="chevron-forward" size={17} color={C.muted}/></View>)}
+    ].map(([icon,label,value])=><Pressable key={label} onPress={label === "Profile & Account" ? onOpenProfile : undefined} style={styles.settingRow}><Ionicons name={icon as any} size={21} color={C.muted}/><Text style={styles.listMain}>{label}</Text>{value && <Text style={styles.muted}>{value}</Text>}<Ionicons name="chevron-forward" size={17} color={C.muted}/></Pressable>)}
+    <Pressable onPress={onLogout} style={styles.settingRow}><Ionicons name="log-out-outline" size={21} color={C.red}/><Text style={styles.listMain}>Sign out</Text></Pressable>
   </View></View></Modal>
 }
 
@@ -382,18 +388,44 @@ function AIModal({visible,onClose}:any){
 }
 
 export default function App(){
+  return <AuthProvider><AppContent /></AuthProvider>;
+}
+
+function AppContent(){
+  const { user, loading, signOut, updateProfile } = useAuth();
   const [tab,setTab]=useState<Tab>("Home");
   const [add,setAdd]=useState(false);
   const [drawer,setDrawer]=useState(false);
   const [settings,setSettings]=useState(false);
+  const [profile,setProfile]=useState(false);
   const [ai,setAI]=useState(false);
+  const [resetToken,setResetToken]=useState<string | null>(null);
+
+  useEffect(() => {
+    const receiveUrl = (url: string) => {
+      const parsed = Linking.parse(url);
+      const candidate = parsed.queryParams?.token;
+      if (parsed.path === "reset-password" && typeof candidate === "string") setResetToken(candidate);
+    };
+    const subscription = Linking.addEventListener("url", ({ url }) => receiveUrl(url));
+    void Linking.getInitialURL().then((url) => { if (url) receiveUrl(url); }).catch(() => {});
+    return () => subscription.remove();
+  }, []);
 
   const screen = useMemo(() => {
-    if(tab==="Home") return <Home setTab={setTab} onAdd={()=>setAdd(true)} onMenu={()=>setDrawer(true)} onNotifications={()=>{}} onSettings={()=>setSettings(true)} onAccount={()=>setSettings(true)} />;
+    if(tab==="Home") return <Home setTab={setTab} onAdd={()=>setAdd(true)} onMenu={()=>setDrawer(true)} onNotifications={()=>{}} onSettings={()=>setSettings(true)} onAccount={()=>setSettings(true)} userName={user?.displayName.split(" ")[0] ?? "Student"} />;
     if(tab==="Insights") return <Insights />;
     if(tab==="Calendar") return <CalendarScreen />;
     return <Goals />;
-  }, [tab]);
+  }, [tab, user?.displayName]);
+
+  if (loading) {
+    return <SafeAreaView style={styles.safe}><StatusBar style="light" /><View style={styles.loading}><Text style={styles.muted}>Loading your account...</Text></View></SafeAreaView>;
+  }
+
+  if (!user || resetToken) {
+    return <AuthScreen initialResetToken={resetToken} onResetComplete={() => { setResetToken(null); void signOut().catch(() => {}); }} />;
+  }
 
   return <SafeAreaView style={styles.safe}>
     <StatusBar style="light"/>
@@ -401,14 +433,16 @@ export default function App(){
     <BottomNav tab={tab} setTab={setTab} onAdd={()=>setAdd(true)} />
     <Pressable style={styles.aiFab} onPress={()=>setAI(true)}><Ionicons name="sparkles" size={23} color="#fff"/></Pressable>
     <AddModal visible={add} onClose={()=>setAdd(false)}/>
-    <Drawer visible={drawer} onClose={()=>setDrawer(false)} setTab={setTab} openAI={()=>setAI(true)}/>
-    <SettingsModal visible={settings} onClose={()=>setSettings(false)}/>
+    <Drawer visible={drawer} onClose={()=>setDrawer(false)} setTab={setTab} openAI={()=>setAI(true)} user={user} onLogout={()=>void signOut()}/>
+    <SettingsModal visible={settings} onClose={()=>setSettings(false)} onOpenProfile={()=>setProfile(true)} onLogout={()=>void signOut()}/>
+    <ProfileModal visible={profile} user={user} onClose={()=>setProfile(false)} onSave={updateProfile}/>
     <AIModal visible={ai} onClose={()=>setAI(false)}/>
   </SafeAreaView>
 }
 
 const styles=StyleSheet.create({
   safe:{flex:1,backgroundColor:C.bg},
+  loading:{flex:1,alignItems:"center",justifyContent:"center"},
   content:{padding:16,paddingBottom:120},
   header:{flexDirection:"row",justifyContent:"space-between",alignItems:"flex-start",marginBottom:18},
   headerLeft:{flexDirection:"row",gap:8,alignItems:"center"},

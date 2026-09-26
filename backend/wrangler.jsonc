@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "student-finance-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-26",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+      "head_sampling_rate": 1
+    }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "student-finance-auth",
+      "database_id": "fd9ca1ad-ce9f-47c8-9679-f0f98edb2ada",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "RESET_LINK_BASE": "studentfinance://reset-password",
+    "CORS_ORIGINS": "http://localhost:8081,http://127.0.0.1:8081"
+  }
+}

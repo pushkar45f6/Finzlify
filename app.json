@@ -4,9 +4,19 @@
     "slug": "student-finance",
     "version": "1.0.0",
     "orientation": "portrait",
+    "scheme": "studentfinance",
     "userInterfaceStyle": "dark",
     "plugins": [
-      "expo-font"
-    ]
+      "expo-font",
+      "expo-secure-store"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a8949d63-1857-470a-aa2d-3eccc3c66e24"
+      }
+    },
+    "android": {
+      "package": "com.finzlify.app"
+    }
   }
 }
