@@ -1,6 +1,6 @@
 # Student Finance
 
-React Native / Expo student-finance app with a Cloudflare Worker API and D1 auth database.
+React Native / Expo student-finance app with a Cloudflare Worker API and per-user D1 data.
 
 ## Run the API locally
 
@@ -22,7 +22,7 @@ npm install
 npx expo start
 ```
 
-Open with Expo Go, Android emulator, or iOS simulator. Expo SecureStore stores the session token on-device; the app never connects to D1 directly.
+Open with Expo Go, Android emulator, or iOS simulator. Expo SecureStore stores the session token on-device; transactions are loaded from the authenticated API and persisted in D1. The app never connects to D1 directly.
 
 ## Worker checks
 
@@ -34,7 +34,7 @@ npm test
 
 Password-reset token generation, hashing, expiry, and one-time verification are implemented. Email delivery is an isolated TODO because Cloudflare Email Sending is not enabled on the available plan. The reset request endpoint does not reveal or return reset tokens.
 
-The dashboard's finance values remain mock data; finance persistence/API endpoints are outside this auth implementation phase.
+The transaction migration is applied by `npm run db:local`. Apply D1 migrations before deploying the Worker so existing accounts receive the transaction table.
 
 No production Worker deployment has been performed.
 
@@ -43,8 +43,9 @@ No production Worker deployment has been performed.
 - Home dashboard
 - Budget + safe-to-spend
 - Spending alerts
-- Upcoming expense calendar
-- Quick expense entry
+- Financial calendar for income and expenses
+- Shared income and expense entry, editing, and deletion
+- Scheduled and recurring transactions
 - Goals
 - Insights
 - Settings

@@ -1,6 +1,6 @@
 # Student Finance API
 
-Cloudflare Worker API with D1-backed accounts, sessions, profile data, and password-reset tokens. The mobile app talks to this API; it never accesses D1 directly.
+Cloudflare Worker API with D1-backed accounts, sessions, profiles, password-reset tokens, and per-user financial transactions. The mobile app talks to this API; it never accesses D1 directly.
 
 ## Local development
 
@@ -11,6 +11,8 @@ npm run dev
 ```
 
 The Worker listens at `http://localhost:8787`. Configure the Expo app's `EXPO_PUBLIC_API_URL` to that URL. Android emulators and physical devices may need the development machine's LAN address instead of `localhost`.
+
+`npm run db:local` applies all D1 migrations, including the per-user transactions table. Transaction dates are date-only values in `YYYY-MM-DD` format.
 
 ## Checks
 

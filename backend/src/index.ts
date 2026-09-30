@@ -32,7 +32,7 @@ export default {
         status: 204,
         headers: {
           "Access-Control-Allow-Origin": origin ?? "null",
-          "Access-Control-Allow-Methods": "GET, POST, PATCH, OPTIONS",
+          "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
           "Access-Control-Allow-Headers": "Authorization, Content-Type",
           "Access-Control-Max-Age": "600",
           Vary: "Origin",

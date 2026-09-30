@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "7eff9104-20bf-4d83-945c-55f706863e6f"
+      }
+    },
+    "android": {
+      "package": "com.finzlify2.app"
+    }
+  }
+}

@@ -123,11 +123,13 @@ describe("authentication routes with local D1", () => {
     const profile = await jsonRequest("/api/v1/me/profile", "GET");
     const update = await jsonRequest("/api/v1/me/profile", "PATCH", { displayName: "No session" });
     const logout = await jsonRequest("/api/v1/auth/logout", "POST");
+    const transactions = await jsonRequest("/api/v1/me/transactions", "GET");
 
     expect(session.status).toBe(401);
     expect(profile.status).toBe(401);
     expect(update.status).toBe(401);
     expect(logout.status).toBe(401);
+    expect(transactions.status).toBe(401);
   });
 
   it("registers, rejects duplicate email and invalid credentials, and supports login, profile, and logout", async () => {
@@ -189,6 +191,50 @@ describe("authentication routes with local D1", () => {
       currencyCode: "USD",
       timezone: "America/New_York",
     });
+
+    const income = {
+      type: "income",
+      amount: 2000,
+      category: "Scholarship",
+      description: "Merit award",
+      date: "2026-09-27",
+      paymentMethod: "Bank transfer",
+      notes: "Fall semester",
+      recurrence: "yearly",
+    };
+    const savedIncome = await jsonRequest("/api/v1/me/transactions/txn-income-1", "PUT", income, token);
+    expect(savedIncome.status).toBe(200);
+    expect((await savedIncome.json() as { data: { transaction: Record<string, unknown> } }).data.transaction)
+      .toMatchObject({ id: "txn-income-1", ...income });
+
+    const invalidDate = await jsonRequest("/api/v1/me/transactions/txn-invalid", "PUT", { ...income, date: "2026-02-30" }, token);
+    expect(invalidDate.status).toBe(400);
+
+    const updatedIncome = await jsonRequest("/api/v1/me/transactions/txn-income-1", "PUT", {
+      ...income,
+      amount: 2500,
+      date: "2026-10-01",
+      category: "Family support",
+      recurrence: null,
+    }, token);
+    expect(updatedIncome.status).toBe(200);
+    const listed = await jsonRequest("/api/v1/me/transactions", "GET", undefined, token);
+    expect((await listed.json() as { data: { transactions: Array<Record<string, unknown>> } }).data.transactions)
+      .toEqual([expect.objectContaining({ amount: 2500, date: "2026-10-01", category: "Family support" })]);
+
+    const otherRegistration = await jsonRequest("/api/v1/auth/register", "POST", {
+      email: `other-${crypto.randomUUID()}@example.test`,
+      password,
+      displayName: "Other User",
+    });
+    const otherToken = (await otherRegistration.json() as { data: { token: string } }).data.token;
+    const otherTransactions = await jsonRequest("/api/v1/me/transactions", "GET", undefined, otherToken);
+    expect((await otherTransactions.json() as { data: { transactions: unknown[] } }).data.transactions).toEqual([]);
+
+    const deleted = await jsonRequest("/api/v1/me/transactions/txn-income-1", "DELETE", undefined, token);
+    expect(deleted.status).toBe(200);
+    const afterDelete = await jsonRequest("/api/v1/me/transactions", "GET", undefined, token);
+    expect((await afterDelete.json() as { data: { transactions: unknown[] } }).data.transactions).toEqual([]);
 
     const logout = await jsonRequest("/api/v1/auth/logout", "POST", undefined, token);
     expect(logout.status).toBe(200);

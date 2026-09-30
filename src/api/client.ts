@@ -1,4 +1,5 @@
-import type { AuthResult, UserProfile } from "../auth/types";
+import type { AuthResult, ProfilePreferences, UserProfile } from "../auth/types";
+import type { Transaction } from "../data/finance";
 
 const apiBaseUrl = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, "");
 
@@ -58,8 +59,24 @@ export const api = {
   profile(token: string) {
     return request<{ user: UserProfile }>("/api/v1/me/profile", { token });
   },
-  updateProfile(token: string, profile: Partial<Pick<UserProfile, "displayName" | "currencyCode" | "timezone">>) {
+  updateProfile(token: string, profile: ProfilePreferences) {
     return request<{ user: UserProfile }>("/api/v1/me/profile", { method: "PATCH", body: profile, token });
+  },
+  transactions(token: string) {
+    return request<{ transactions: Transaction[] }>("/api/v1/me/transactions", { token });
+  },
+  saveTransaction(token: string, transaction: Transaction) {
+    return request<{ transaction: Transaction }>(`/api/v1/me/transactions/${encodeURIComponent(transaction.id)}`, {
+      method: "PUT",
+      body: transaction,
+      token,
+    });
+  },
+  deleteTransaction(token: string, id: string) {
+    return request<{ deleted: boolean }>(`/api/v1/me/transactions/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      token,
+    });
   },
   requestPasswordReset(email: string) {
     return request<{ message: string }>("/api/v1/auth/password-reset/request", { method: "POST", body: { email } });
