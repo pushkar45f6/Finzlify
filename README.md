@@ -1,4 +1,4 @@
-# Student Finance
+# Finzlify -- A Student Finances Management App
 
 React Native / Expo student-finance app with a Cloudflare Worker API and per-user D1 data.
 
